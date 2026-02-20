@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    {% load static %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>김성식 | Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'portfolio/styles.css' %}" />
+  </head>
+  <body>
+    <div class="bg-noise"></div>
+    <header class="topbar">
+      <a class="brand" href="#">SSKIM DEV</a>
+      <nav>
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#skills">Skills</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero reveal">
+        <p class="eyebrow">BACKEND · DATA · PRODUCT</p>
+        <h1>문제를 빠르게 구조화하고<br />실제로 동작하게 만듭니다.</h1>
+        <p class="hero-copy">
+          안녕하세요. 사용자 가치와 기술 안정성을 함께 고려하는 개발자 김개발입니다.
+          Python, 웹 개발, 데이터 처리 중심으로 서비스와 자동화 도구를 만들고 있습니다.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#projects">프로젝트 보기</a>
+          <a class="btn btn-ghost" href="#contact">협업 문의</a>
+        </div>
+      </section>
+
+      <section id="about" class="about reveal">
+        <h2>About Me</h2>
+        <p>
+          요구사항을 빠르게 분해하고, 유지보수 가능한 코드와 명확한 문서화를 통해
+          팀의 개발 속도를 높이는 데 집중합니다. 최근에는 주식 데이터 분석,
+          업무 자동화, 간단한 SaaS 랜딩 제작을 주로 진행했습니다.
+        </p>
+        <div class="ticker" aria-label="live clock">
+          <span>LOCAL TIME</span>
+          <strong id="clock">--:--:--</strong>
+        </div>
+      </section>
+
+      <section id="projects" class="section-block reveal">
+        <h2 class="section-title">Featured Projects</h2>
+        <div class="cards">
+          <article class="card">
+            <h3>Stock Direction Model</h3>
+            <p>OHLCV 데이터 기반으로 다음 날 상승/하락을 분류하는 모델 파이프라인.</p>
+            <p class="meta">Python · pandas · scikit-learn</p>
+          </article>
+          <article class="card">
+            <h3>Automation Scripts</h3>
+            <p>반복 업무를 CLI로 자동화하여 처리 시간을 단축한 사내 유틸 모음.</p>
+            <p class="meta">Python · Shell · Cron</p>
+          </article>
+          <article class="card">
+            <h3>Landing Page System</h3>
+            <p>단일 템플릿 기반으로 빠르게 페이지를 배포하는 정적 웹 구조.</p>
+            <p class="meta">HTML · CSS · JavaScript</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="skills" class="section-block reveal">
+        <h2 class="section-title">Skills</h2>
+        <div class="skill-list">
+          <span>Python</span>
+          <span>FastAPI</span>
+          <span>Flask</span>
+          <span>pandas</span>
+          <span>scikit-learn</span>
+          <span>SQL</span>
+          <span>Git/GitHub</span>
+          <span>HTML/CSS/JS</span>
+        </div>
+      </section>
+
+      <section id="contact" class="contact reveal">
+        <h2>Contact</h2>
+        <p>프로젝트/협업 문의는 아래 채널로 연락주세요.</p>
+        <div class="contact-links">
+          <a class="btn btn-primary" href="mailto:hello@example.com">hello@example.com</a>
+          <a class="btn btn-ghost" href="https://github.com/your-id">GitHub</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="{% static 'portfolio/script.js' %}"></script>
+  </body>
+</html>
