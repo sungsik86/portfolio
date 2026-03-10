@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    {% load static %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fly.io로 Django 웹 페이지 배포하기</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'portfolio/styles.css' %}" />
+  </head>
+  <body>
+    <div class="bg-noise"></div>
+    <header class="topbar">
+      <a class="brand" href="{% url 'home' %}">SSKIM DEV</a>
+      <nav>
+        <a href="{% url 'home' %}#projects">Projects</a>
+        <a href="{% url 'home' %}#skills">Skills</a>
+        <a href="{% url 'home' %}#contact">Contact</a>
+      </nav>
+    </header>
+
+    <main class="detail-page">
+      <section class="hero reveal">
+        <p class="eyebrow">CASE STUDY · DJANGO · FLY.IO</p>
+        <h1>Fly.io로 Django 웹 페이지 배포하기</h1>
+        <p class="hero-copy">
+          Django로 만든 웹 페이지를 개발 환경에서 운영 URL까지 올릴 때 필요한 흐름을
+          단계별로 정리한 실전 배포 기록입니다. 설정 파일, 실행 명령, 점검 포인트,
+          실패 케이스 대응까지 한 페이지에서 확인할 수 있도록 구성했습니다.
+        </p>
+      </section>
+
+      <article class="detail-card reveal">
+        <h2>1. 목표와 전제</h2>
+        <p>
+          목표는 Django 템플릿 기반 웹 페이지를 Fly.io에 올리고, 이후 수정 사항을
+          <code>flyctl deploy</code> 한 번으로 재배포할 수 있는 상태를 만드는 것입니다.
+          로컬 실행과 운영 실행의 차이를 줄이기 위해 컨테이너 기반으로 배포합니다.
+        </p>
+
+        <h2>2. 준비물</h2>
+        <ul>
+          <li>Python 3.11 이상</li>
+          <li>Django 프로젝트(templates/static 구조 분리)</li>
+          <li>Fly.io 계정 + <code>flyctl</code> 설치</li>
+          <li>GitHub 저장소(버전 관리 및 배포 이력 추적)</li>
+        </ul>
+
+        <h2>3. 핵심 파일 구성</h2>
+        <pre><code>manage.py
+portfolio/
+  templates/portfolio/index.html
+  templates/portfolio/flyio_deploy.html
+  static/portfolio/styles.css
+  static/portfolio/script.js
+portfolio_site/settings.py
+Dockerfile
+start.sh
+fly.toml</code></pre>
+
+        <h2>4. settings.py 필수 설정</h2>
+        <p>
+          운영 배포에서는 환경변수 기반 설정이 중요합니다. 특히
+          <code>ALLOWED_HOSTS</code>, <code>STATIC_ROOT</code>가 빠지면
+          배포 후 400/정적파일 오류가 발생할 수 있습니다.
+        </p>
+        <pre><code>SECRET_KEY = os.getenv(\"DJANGO_SECRET_KEY\", \"dev-key\")
+DEBUG = os.getenv(\"DEBUG\", \"False\").lower() in {\"1\", \"true\", \"yes\", \"on\"}
+ALLOWED_HOSTS = os.getenv(\"ALLOWED_HOSTS\", \"*\").split(\",\")
+STATIC_URL = \"static/\"
+STATIC_ROOT = BASE_DIR / \"static\"</code></pre>
+
+        <h2>5. 컨테이너 시작 순서</h2>
+        <p>
+          앱 시작 전에 데이터베이스 마이그레이션과 정적파일 수집을 실행하고,
+          마지막에 <code>gunicorn</code>으로 앱을 띄웁니다.
+        </p>
+        <pre><code>python manage.py migrate --noinput
+python manage.py collectstatic --noinput
+gunicorn portfolio_site.wsgi:application --bind 0.0.0.0:8000 --workers 2</code></pre>
+
+        <h2>6. fly.toml에서 맞춰야 할 값</h2>
+        <ul>
+          <li><code>internal_port = 8000</code> (앱 실행 포트와 동일하게)</li>
+          <li><code>ALLOWED_HOSTS</code>에 <code>*.fly.dev</code> 도메인 반영</li>
+          <li>필요 시 <code>statics</code>로 정적 경로 매핑</li>
+        </ul>
+
+        <h2>7. 실제 배포 명령</h2>
+        <pre><code>flyctl auth login
+flyctl deploy
+flyctl status
+flyctl logs</code></pre>
+        <p>
+          배포가 성공하면 <code>https://&lt;app-name&gt;.fly.dev</code> 주소로
+          페이지가 노출됩니다.
+        </p>
+
+        <h2>8. 자주 겪는 문제와 해결</h2>
+        <h3>1) Repository not found</h3>
+        <p>
+          원격 주소가 잘못 연결된 경우입니다. <code>git remote -v</code> 확인 후
+          <code>git remote set-url origin ...</code>으로 수정합니다.
+        </p>
+
+        <h3>2) 배포 후 정적 파일 미반영</h3>
+        <p>
+          <code>collectstatic</code> 누락 또는 경로 설정 불일치가 원인입니다.
+          <code>STATIC_ROOT</code>와 start 스크립트 실행 순서를 점검합니다.
+        </p>
+
+        <h3>3) Expected address 경고</h3>
+        <p>
+          앱 바인딩 주소/포트와 Fly 내부 포트가 맞지 않으면 발생합니다.
+          <code>0.0.0.0:8000</code> + <code>internal_port=8000</code> 조합으로 통일합니다.
+        </p>
+
+        <h2>9. 검증 체크리스트</h2>
+        <ul>
+          <li><code>flyctl status</code>에서 최신 버전이 <code>started</code> 상태인지 확인</li>
+          <li>홈페이지 로딩 후 CSS/JS 정상 반영 여부 확인</li>
+          <li>프로젝트 카드 클릭 시 상세 페이지 라우팅 동작 확인</li>
+          <li>운영 URL 직접 접속: <code>https://base-project.fly.dev/</code></li>
+        </ul>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="{% url 'home' %}#projects">프로젝트 목록으로</a>
+        </div>
+      </article>
+    </main>
+
+    <script src="{% static 'portfolio/script.js' %}"></script>
+  </body>
+</html>
