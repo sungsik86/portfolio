@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    {% load static %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trans 환율 변환기 | TWD to KRW</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'portfolio/styles.css' %}" />
+  </head>
+  <body>
+    <div class="bg-noise"></div>
+    <header class="topbar">
+      <a class="brand" href="{% url 'home' %}">KIM SUNGSIK</a>
+      <nav>
+        <a href="{% url 'home' %}#projects">Projects</a>
+        <a href="{% url 'home' %}#skills">Skills</a>
+      </nav>
+    </header>
+
+    <main class="detail-page">
+      <section class="detail-card reveal converter">
+        <h1>Trans 환율 변환기</h1>
+        <p class="converter-subtitle">
+          대만달러(TWD) 입력 시 한국 원화(KRW) 금액을 바로 확인할 수 있습니다.
+        </p>
+
+        <div class="converter-grid">
+          <label class="converter-field">
+            <span>TWD 금액</span>
+            <input id="twdAmount" type="number" min="0" step="0.01" value="1000" />
+          </label>
+          <div class="converter-rate">
+            <span>자동 환율 (1 TWD)</span>
+            <strong id="rateDisplay">불러오는 중...</strong>
+            <button type="button" id="refreshRateBtn" class="btn btn-ghost converter-refresh">
+              환율 새로고침
+            </button>
+          </div>
+        </div>
+
+        <div class="converter-result">
+          <p>KRW 환산 금액</p>
+          <strong id="krwResult">₩44,000</strong>
+        </div>
+        <p id="rateStatus" class="converter-status">환율 정보를 불러오는 중입니다.</p>
+
+        <p class="converter-note">
+          참고: 환율은 수시로 변동되므로, 실제 거래 전 최신 환율을 확인하세요.
+        </p>
+      </section>
+    </main>
+
+    <script src="{% static 'portfolio/script.js' %}"></script>
+    <script>
+      const twdAmount = document.getElementById("twdAmount");
+      const rateDisplay = document.getElementById("rateDisplay");
+      const refreshRateBtn = document.getElementById("refreshRateBtn");
+      const rateStatus = document.getElementById("rateStatus");
+      const krwResult = document.getElementById("krwResult");
+      const FALLBACK_RATE = 44;
+      let exchangeRate = FALLBACK_RATE;
+
+      function formatKrw(value) {
+        return new Intl.NumberFormat("ko-KR", {
+          style: "currency",
+          currency: "KRW",
+          maximumFractionDigits: 0,
+        }).format(value);
+      }
+
+      function updateKrw() {
+        const twd = Number(twdAmount.value);
+        const rate = Number(exchangeRate);
+
+        if (!Number.isFinite(twd) || !Number.isFinite(rate) || twd < 0 || rate < 0) {
+          krwResult.textContent = "-";
+          return;
+        }
+
+        krwResult.textContent = formatKrw(twd * rate);
+      }
+
+      function setRateStatus(text, isError) {
+        rateStatus.textContent = text;
+        rateStatus.classList.toggle("error", Boolean(isError));
+      }
+
+      async function loadExchangeRate() {
+        setRateStatus("환율 정보를 불러오는 중입니다.", false);
+
+        try {
+          const response = await fetch("https://open.er-api.com/v6/latest/TWD", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error("환율 API 응답 실패");
+          }
+
+          const data = await response.json();
+          const krwRate = Number(data?.rates?.KRW);
+          if (!Number.isFinite(krwRate) || krwRate <= 0) {
+            throw new Error("KRW 환율 데이터 없음");
+          }
+
+          exchangeRate = krwRate;
+          rateDisplay.textContent = `${krwRate.toFixed(4)} KRW`;
+
+          const updatedAt = data?.time_last_update_utc
+            ? new Date(data.time_last_update_utc).toLocaleString("ko-KR")
+            : "시간 정보 없음";
+          setRateStatus(`자동 환율 반영 완료 (${updatedAt})`, false);
+          updateKrw();
+        } catch (error) {
+          exchangeRate = FALLBACK_RATE;
+          rateDisplay.textContent = `${FALLBACK_RATE.toFixed(4)} KRW (기본값)`;
+          setRateStatus("자동 환율 조회 실패: 기본 환율(44.0000)로 계산 중", true);
+          updateKrw();
+        }
+      }
+
+      twdAmount.addEventListener("input", updateKrw);
+      refreshRateBtn.addEventListener("click", loadExchangeRate);
+      updateKrw();
+      loadExchangeRate();
+      setInterval(loadExchangeRate, 5 * 60 * 1000);
+    </script>
+  </body>
+</html>

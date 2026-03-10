@@ -4,7 +4,7 @@
     {% load static %}
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>김성식 | Portfolio</title>
+    <title>김성식 | Developer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,59 +16,90 @@
   <body>
     <div class="bg-noise"></div>
     <header class="topbar">
-      <a class="brand" href="#">SSKIM DEV</a>
+      <a class="brand" href="#">KIM SUNGSIK</a>
+        <!-- <div class="ticker" aria-label="live clock">
+          <span>LOCAL TIME</span>
+          <strong id="clock">--:--:--</strong>
+        </div> -->
       <nav>
-        <a href="#about">About</a>
+        <a href="#summary">Summary</a>
+        <a href="#career">Career</a>
         <a href="#projects">Projects</a>
         <a href="#skills">Skills</a>
-        <a href="#contact">Contact</a>
       </nav>
     </header>
 
     <main>
       <section class="hero reveal">
-        <p class="eyebrow">BACKEND · DATA · PRODUCT</p>
-        <h1>문제를 빠르게 구조화하고<br />실제로 동작하게 만듭니다.</h1>
-        <p class="hero-copy">
-          안녕하세요. 사용자 가치와 기술 안정성을 함께 고려하는 개발자 김개발입니다.
-          Python, 웹 개발, 데이터 처리 중심으로 서비스와 자동화 도구를 만들고 있습니다.
-        </p>
+        <p class="eyebrow"> AI · SYSTEMS </p>
+        <h1>개발자 포트폴리오</h1>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#projects">프로젝트 보기</a>
-          <a class="btn btn-ghost" href="#contact">협업 문의</a>
+          <a class="btn btn-primary" href="#career">경력 보기</a>
+          <a class="btn btn-ghost" href="#projects">프로젝트 보기</a>
         </div>
       </section>
 
-      <section id="about" class="about reveal">
-        <h2>About Me</h2>
+      <section id="summary" class="about reveal">
+        <h2>Summary</h2>
         <p>
-          요구사항을 빠르게 분해하고, 유지보수 가능한 코드와 명확한 문서화를 통해
-          팀의 개발 속도를 높이는 데 집중합니다. 최근에는 주식 데이터 분석,
-          업무 자동화, 간단한 SaaS 랜딩 제작을 주로 진행했습니다.
+          책임 연구원으로 LLM을 이용하여 프로그램 언어 자동생성 분석 등을 연구하고 있습니다.<br/>
+          메시지 전송 시스템, 시뮬레이션, 전문 테스트 프로그램 등을 개발 하였고,<br/>
+          요구사항 분석부터 설계, 개발, 운영까지 엔드 투 엔드로 대응합니다.
         </p>
-        <div class="ticker" aria-label="live clock">
-          <span>LOCAL TIME</span>
-          <strong id="clock">--:--:--</strong>
+      </section>
+
+      <section id="career" class="section-block reveal">
+        <h2 class="section-title">Career Timeline</h2>
+        <div class="timeline">
+          <article class="timeline-item">
+            <h3>㈜이커머스테크 · 책임 연구원</h3>
+            <p class="meta">2022.08 ~ 재직 중 · 서비스 개발팀</p>
+            <p>메시지 전송/통계 프로그램 개발, 발송 채널 고도화, 운영 자동화 수행</p>
+          </article>
+          <article class="timeline-item">
+            <h3>㈜아트랩소프트 · 선임 연구원/팀장</h3>
+            <p class="meta">2019.09 ~ 2022.07 · 기술연구소</p>
+            <p>연구소 운영 관리, 금융권 통신 전문 파싱/응답 프로그램 개발</p>
+          </article>
+          <article class="timeline-item">
+            <h3>㈜SYLAB · 대리</h3>
+            <p class="meta">2018.07 ~ 2019.07 · 개발팀</p>
+            <p>C4ISR 체계분석 모델 개발, 자료 편집기/입출력기 개발</p>
+          </article>
+          <article class="timeline-item">
+            <h3>㈜원넷시스 · 대리</h3>
+            <p class="meta">2015.06 ~ 2018.07 · 보안솔루션팀</p>
+            <p>인증 솔루션 개발/유지보수, 보안 취약점 대응, 고객사 요청 개발</p>
+          </article>
         </div>
       </section>
 
       <section id="projects" class="section-block reveal">
         <h2 class="section-title">Featured Projects</h2>
         <div class="cards">
+          <a class="card-link" href="{% url 'flyio_deploy' %}">
+            <article class="card">
+              <h3>Fly.io로 Django 웹 페이지 배포하기</h3>
+              <p>프로젝트 세팅부터 배포/검증/트러블슈팅까지 정리한 상세 가이드.</p>
+              <p class="meta">Django · Fly.io · Docker · Gunicorn</p>
+            </article>
+          </a>
+          <a class="card-link" href="{% url 'trans_converter' %}">
+            <article class="card">
+              <h3>Trans 환율 변환기 (TWD → KRW)</h3>
+              <p>대만달러를 입력하면 한국 원화로 즉시 계산되는 모바일 최적화 페이지.</p>
+              <p class="meta">Django · JavaScript · Mobile UI</p>
+            </article>
+          </a>
           <article class="card">
-            <h3>Stock Direction Model</h3>
-            <p>OHLCV 데이터 기반으로 다음 날 상승/하락을 분류하는 모델 파이프라인.</p>
-            <p class="meta">Python · pandas · scikit-learn</p>
+            <h3>LGCNS 메시지발송 시스템</h3>
+            <p>신규 카카오 친구톡 업그레이드 채널 개발, 분산 발송 브로커 기능 구현.</p>
+            <p class="meta">Java · DEVON · MySQL · Rest API</p>
           </article>
           <article class="card">
-            <h3>Automation Scripts</h3>
-            <p>반복 업무를 CLI로 자동화하여 처리 시간을 단축한 사내 유틸 모음.</p>
-            <p class="meta">Python · Shell · Cron</p>
-          </article>
-          <article class="card">
-            <h3>Landing Page System</h3>
-            <p>단일 템플릿 기반으로 빠르게 페이지를 배포하는 정적 웹 구조.</p>
-            <p class="meta">HTML · CSS · JavaScript</p>
+            <h3>로그 월별 분할/자동 이관</h3>
+            <p>로그 테이블 월 파티셔닝 구조로 전환해 삭제 시 락 이슈를 최소화.</p>
+            <p class="meta">MySQL · Partitioning · 운영 자동화</p>
           </article>
         </div>
       </section>
@@ -76,23 +107,31 @@
       <section id="skills" class="section-block reveal">
         <h2 class="section-title">Skills</h2>
         <div class="skill-list">
+          <span>Java</span>
           <span>Python</span>
-          <span>FastAPI</span>
-          <span>Flask</span>
-          <span>pandas</span>
-          <span>scikit-learn</span>
-          <span>SQL</span>
+          <span>JavaScript</span>
+          <span>C++</span>
+          <span>Django</span>
+          <span>Spring4</span>
+          <span>MySQL</span>
+          <span>MariaDB</span>
+          <span>Oracle</span>
+          <span>PostgreSQL</span>
+          <span>Redis</span>
           <span>Git/GitHub</span>
-          <span>HTML/CSS/JS</span>
+          <span>SVN</span>
+          <span>TensorFlow</span>
+          <span>PyTorch</span>
         </div>
       </section>
 
-      <section id="contact" class="contact reveal">
-        <h2>Contact</h2>
-        <p>프로젝트/협업 문의는 아래 채널로 연락주세요.</p>
+      <section class="contact reveal">
+        <h2>Education & Thesis</h2>
+        <p>숭실대학교 대학원 인공지능학과 석사(2022.07 ~ 2025.02)</p>
+        <p>한국방송통신대학교 컴퓨터과학과 학사(2015.03 ~ 2019.08)</p>
+        <p>석사 논문: 하이브리드 모델을 이용한 스팸 문자 분류 기법</p>
         <div class="contact-links">
-          <a class="btn btn-primary" href="mailto:hello@example.com">hello@example.com</a>
-          <a class="btn btn-ghost" href="https://github.com/your-id">GitHub</a>
+          <a class="btn btn-primary" href="tel:01063583785">010-6358-3785</a>
         </div>
       </section>
     </main>
