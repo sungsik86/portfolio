@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    {% load static %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>로또 번호 예측기 | Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Syne:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'portfolio/styles.css' %}" />
+  </head>
+  <body>
+    <div class="bg-noise"></div>
+    <header class="topbar">
+      <a class="brand" href="{% url 'home' %}">KIM SUNGSIK</a>
+      <nav>
+        <a href="{% url 'home' %}#projects">Projects</a>
+        <a href="{% url 'home' %}#skills">Skills</a>
+      </nav>
+    </header>
+
+    <main class="detail-page">
+      <section class="detail-card reveal lotto">
+        <h1>로또 번호 예측기</h1>
+        <p class="lotto-subtitle">
+          과거 회차 데이터를 참고해 이번 주 추천 번호 조합을 생성합니다.
+        </p>
+
+        <div class="lotto-controls">
+          <label class="converter-field">
+            <span>추천 세트 수 (1~10)</span>
+            <input id="setCount" type="number" min="1" max="10" step="1" value="3" autocomplete="off" />
+          </label>
+          <button id="predictBtn" class="btn btn-primary lotto-btn" type="button">
+            전체 회차로 예측하기
+          </button>
+        </div>
+
+        <p id="lottoStatus" class="lotto-status">
+          버튼을 누르면 최신 회차 데이터를 불러와 예측합니다.
+        </p>
+
+        <section class="lotto-summary">
+          <p>최신 회차: <strong id="latestDraw">-</strong></p>
+          <p>분석 데이터: <strong id="drawCount">-</strong></p>
+        </section>
+
+        <section>
+          <h2>추천 번호 조합</h2>
+          <div id="lottoSets" class="lotto-sets"></div>
+        </section>
+
+        <section class="lotto-stat-grid">
+          <article class="lotto-stat-card">
+            <h3>자주 나온 번호(Hot)</h3>
+            <p id="hotNumbers">-</p>
+          </article>
+          <article class="lotto-stat-card">
+            <h3>덜 나온 번호(Cold)</h3>
+            <p id="coldNumbers">-</p>
+          </article>
+        </section>
+
+        <p class="lotto-note">
+          참고: 이 기능은 통계 기반 추천이며 실제 당첨을 보장하지 않습니다.
+        </p>
+      </section>
+    </main>
+
+    <script src="{% static 'portfolio/script.js' %}"></script>
+    <script>
+      const setCountInput = document.getElementById("setCount");
+      const predictBtn = document.getElementById("predictBtn");
+      const lottoStatus = document.getElementById("lottoStatus");
+      const latestDraw = document.getElementById("latestDraw");
+      const drawCount = document.getElementById("drawCount");
+      const lottoSets = document.getElementById("lottoSets");
+      const hotNumbers = document.getElementById("hotNumbers");
+      const coldNumbers = document.getElementById("coldNumbers");
+      const DEFAULT_SET_COUNT = 3;
+
+      function formatNumbers(numbers) {
+        return numbers.map((number) => String(number).padStart(2, "0")).join(" · ");
+      }
+
+      function renderSets(sets) {
+        lottoSets.innerHTML = "";
+        sets.forEach((set, index) => {
+          const card = document.createElement("article");
+          card.className = "lotto-set-card";
+          card.innerHTML = `
+            <h3>조합 ${index + 1}</h3>
+            <p>${formatNumbers(set)}</p>
+          `;
+          lottoSets.appendChild(card);
+        });
+      }
+
+      function resetView() {
+        setCountInput.value = String(DEFAULT_SET_COUNT);
+        latestDraw.textContent = "-";
+        drawCount.textContent = "-";
+        hotNumbers.textContent = "-";
+        coldNumbers.textContent = "-";
+        lottoSets.innerHTML = "";
+        lottoStatus.textContent = "버튼을 누르면 최신 회차 데이터를 불러와 예측합니다.";
+        lottoStatus.classList.remove("error");
+      }
+
+      async function predictNumbers() {
+        const sets = Math.max(1, Math.min(10, Number(setCountInput.value) || 5));
+
+        lottoStatus.textContent = "전체 회차 데이터를 계산하는 중입니다...";
+        lottoStatus.classList.remove("error");
+        predictBtn.disabled = true;
+        latestDraw.textContent = "-";
+        drawCount.textContent = "-";
+        hotNumbers.textContent = "-";
+        coldNumbers.textContent = "-";
+        lottoSets.innerHTML = "";
+
+        try {
+          const response = await fetch(`/api/lotto/predict/?sets=${sets}`);
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "예측 데이터를 불러오지 못했습니다.");
+          }
+
+          latestDraw.textContent = `${data.latest_draw_no}회 (${data.latest_draw_date})`;
+          drawCount.textContent = `${data.analyzed_draw_count}개 회차`;
+          renderSets(data.recommended_sets);
+          hotNumbers.textContent = formatNumbers(data.hot_numbers);
+          coldNumbers.textContent = formatNumbers(data.cold_numbers);
+          lottoStatus.textContent = data.note;
+        } catch (error) {
+          lottoStatus.textContent = error.message;
+          lottoStatus.classList.add("error");
+        } finally {
+          predictBtn.disabled = false;
+        }
+      }
+
+      predictBtn.addEventListener("click", predictNumbers);
+      window.addEventListener("pageshow", resetView);
+      resetView();
+    </script>
+  </body>
+</html>

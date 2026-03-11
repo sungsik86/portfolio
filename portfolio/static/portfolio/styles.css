@@ -419,6 +419,110 @@ h1 {
   color: #9fb0cc;
 }
 
+.lotto h1 {
+  font-family: "Syne", sans-serif;
+  font-size: clamp(1.8rem, 6vw, 2.6rem);
+}
+
+.lotto-subtitle {
+  margin-top: 0.9rem;
+}
+
+.lotto-controls {
+  margin-top: 1.3rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  align-items: end;
+}
+
+.lotto-btn {
+  border: 0;
+  cursor: pointer;
+}
+
+.lotto-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.lotto-status {
+  margin-top: 0.8rem;
+  font-size: 0.92rem;
+  color: #c8d4e8;
+}
+
+.lotto-status.error {
+  color: #ffb2a0;
+}
+
+.lotto-summary {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.3rem;
+}
+
+.lotto-summary p {
+  margin: 0;
+}
+
+.lotto-sets {
+  margin-top: 0.8rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.lotto-set-card {
+  border: 1px solid #ffffff20;
+  border-radius: 12px;
+  padding: 0.9rem;
+  background: #172130;
+}
+
+.lotto-set-card h3 {
+  font-family: "Syne", sans-serif;
+  font-size: 1rem;
+}
+
+.lotto-set-card p {
+  margin: 0.45rem 0 0;
+  font-size: 1.05rem;
+  color: #f0f6ff;
+  letter-spacing: 0.04em;
+}
+
+.lotto-stat-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.lotto-stat-card {
+  border: 1px solid #ffffff20;
+  border-radius: 12px;
+  padding: 0.9rem;
+  background: #131b28;
+}
+
+.lotto-stat-card h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.lotto-stat-card p {
+  margin: 0.45rem 0 0;
+  color: #d7e3f8;
+}
+
+.lotto-note {
+  margin-top: 0.9rem;
+  font-size: 0.88rem;
+  color: #9fb0cc;
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(22px);
@@ -436,6 +540,18 @@ h1 {
   }
 
   .converter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lotto-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .lotto-sets {
+    grid-template-columns: 1fr;
+  }
+
+  .lotto-stat-grid {
     grid-template-columns: 1fr;
   }
 
