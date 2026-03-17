@@ -180,6 +180,10 @@ def _find_latest_draw_no():
 
 
 def _build_lotto_prediction(draws, set_count):
+    return _build_lotto_prediction_with_penalty(draws, set_count, set())
+
+
+def _build_lotto_prediction_with_penalty(draws, set_count, user_numbers):
     scores = {number: 1.0 for number in range(LOTTO_MIN_NUMBER, LOTTO_MAX_NUMBER + 1)}
     frequency = {number: 0 for number in range(LOTTO_MIN_NUMBER, LOTTO_MAX_NUMBER + 1)}
     total_draws = len(draws)
@@ -193,6 +197,8 @@ def _build_lotto_prediction(draws, set_count):
     latest_numbers = set(draws[-1]["numbers"])
     for number in latest_numbers:
         scores[number] *= 0.82
+    for number in user_numbers:
+        scores[number] *= 0.72
 
     hot_numbers = sorted(scores, key=lambda number: scores[number], reverse=True)[:10]
     cold_numbers = sorted(scores, key=lambda number: scores[number])[:10]
@@ -216,6 +222,14 @@ def _build_lotto_prediction(draws, set_count):
             selected.append(chosen)
 
         selected.sort()
+        selected_set = set(selected)
+        if len(selected_set & latest_numbers) >= 3:
+            attempts += 1
+            continue
+        if user_numbers and len(selected_set & user_numbers) >= 3:
+            attempts += 1
+            continue
+
         key = tuple(selected)
         if key not in seen:
             picks.append(selected)
@@ -238,6 +252,30 @@ def _build_lotto_prediction(draws, set_count):
         "cold_numbers": sorted(cold_numbers),
         "frequency": frequency,
     }
+
+
+def _parse_number_set(raw_numbers):
+    if not raw_numbers:
+        return set()
+
+    cleaned = raw_numbers.replace(",", " ").split()
+    numbers = []
+    for token in cleaned:
+        try:
+            number = int(token)
+        except ValueError:
+            raise ValueError("내 번호 형식이 올바르지 않습니다. 예: 3, 11, 17, 23, 31, 41") from None
+
+        if number < LOTTO_MIN_NUMBER or number > LOTTO_MAX_NUMBER:
+            raise ValueError("내 번호는 1~45 범위여야 합니다.")
+        numbers.append(number)
+
+    number_set = set(numbers)
+    if len(number_set) == 0:
+        return set()
+    if len(number_set) > 6:
+        raise ValueError("내 번호는 최대 6개까지 입력할 수 있습니다.")
+    return number_set
 
 
 def _build_random_fallback(set_count):
@@ -294,10 +332,15 @@ def lotto_predict_api(request):
         set_count = int(request.GET.get("sets", 5))
     except ValueError:
         return JsonResponse({"error": "sets 파라미터는 숫자여야 합니다."}, status=400)
+    try:
+        user_numbers = _parse_number_set(request.GET.get("my_numbers", ""))
+    except ValueError as error:
+        return JsonResponse({"error": str(error)}, status=400)
 
     set_count = max(1, min(set_count, 10))
     _ensure_lotto_warmup()
     draws = sorted(LOTTO_DRAW_CACHE.values(), key=lambda item: item["draw_no"])
+    latest_week_numbers = draws[-1]["numbers"] if draws else []
 
     if len(draws) < 30:
         fallback = _build_random_fallback(set_count)
@@ -309,11 +352,13 @@ def lotto_predict_api(request):
                 "recommended_sets": fallback["recommended_sets"],
                 "hot_numbers": fallback["hot_numbers"],
                 "cold_numbers": fallback["cold_numbers"],
+                "my_numbers": sorted(user_numbers),
+                "last_week_numbers": latest_week_numbers,
                 "note": "전체 회차 데이터를 백그라운드 수집 중입니다. 잠시 후 다시 시도하세요.",
             }
         )
 
-    prediction = _build_lotto_prediction(draws, set_count)
+    prediction = _build_lotto_prediction_with_penalty(draws, set_count, user_numbers)
     return JsonResponse(
         {
             "latest_draw_no": draws[-1]["draw_no"],
@@ -322,6 +367,8 @@ def lotto_predict_api(request):
             "recommended_sets": prediction["recommended_sets"],
             "hot_numbers": prediction["hot_numbers"],
             "cold_numbers": prediction["cold_numbers"],
-            "note": "과거 패턴 기반 추천이며 당첨을 보장하지 않습니다.",
+            "my_numbers": sorted(user_numbers),
+            "last_week_numbers": latest_week_numbers,
+            "note": "내 번호/지난주 번호와 겹침을 줄이는 패널티를 반영한 통계 추천입니다.",
         }
     )

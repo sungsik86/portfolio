@@ -35,6 +35,10 @@
             <span>추천 세트 수 (1~10)</span>
             <input id="setCount" type="number" min="1" max="10" step="1" value="3" autocomplete="off" />
           </label>
+          <label class="converter-field">
+            <span>내 번호 (선택, 쉼표/공백 구분)</span>
+            <input id="myNumbers" type="text" placeholder="예: 3, 11, 17, 23, 31, 41" autocomplete="off" />
+          </label>
           <button id="predictBtn" class="btn btn-primary lotto-btn" type="button">
             전체 회차로 예측하기
           </button>
@@ -47,6 +51,8 @@
         <section class="lotto-summary">
           <p>최신 회차: <strong id="latestDraw">-</strong></p>
           <p>분석 데이터: <strong id="drawCount">-</strong></p>
+          <p>지난주 번호: <strong id="lastWeekNumbers">-</strong></p>
+          <p>내 번호 패널티: <strong id="myPenaltyNumbers">-</strong></p>
         </section>
 
         <section>
@@ -74,10 +80,13 @@
     <script src="{% static 'portfolio/script.js' %}"></script>
     <script>
       const setCountInput = document.getElementById("setCount");
+      const myNumbersInput = document.getElementById("myNumbers");
       const predictBtn = document.getElementById("predictBtn");
       const lottoStatus = document.getElementById("lottoStatus");
       const latestDraw = document.getElementById("latestDraw");
       const drawCount = document.getElementById("drawCount");
+      const lastWeekNumbers = document.getElementById("lastWeekNumbers");
+      const myPenaltyNumbers = document.getElementById("myPenaltyNumbers");
       const lottoSets = document.getElementById("lottoSets");
       const hotNumbers = document.getElementById("hotNumbers");
       const coldNumbers = document.getElementById("coldNumbers");
@@ -102,8 +111,11 @@
 
       function resetView() {
         setCountInput.value = String(DEFAULT_SET_COUNT);
+        myNumbersInput.value = "";
         latestDraw.textContent = "-";
         drawCount.textContent = "-";
+        lastWeekNumbers.textContent = "-";
+        myPenaltyNumbers.textContent = "-";
         hotNumbers.textContent = "-";
         coldNumbers.textContent = "-";
         lottoSets.innerHTML = "";
@@ -113,18 +125,26 @@
 
       async function predictNumbers() {
         const sets = Math.max(1, Math.min(10, Number(setCountInput.value) || 5));
+        const myNumbersRaw = myNumbersInput.value.trim();
 
         lottoStatus.textContent = "전체 회차 데이터를 계산하는 중입니다...";
         lottoStatus.classList.remove("error");
         predictBtn.disabled = true;
         latestDraw.textContent = "-";
         drawCount.textContent = "-";
+        lastWeekNumbers.textContent = "-";
+        myPenaltyNumbers.textContent = "-";
         hotNumbers.textContent = "-";
         coldNumbers.textContent = "-";
         lottoSets.innerHTML = "";
 
         try {
-          const response = await fetch(`/api/lotto/predict/?sets=${sets}`);
+          const query = new URLSearchParams({ sets: String(sets) });
+          if (myNumbersRaw) {
+            query.set("my_numbers", myNumbersRaw);
+          }
+
+          const response = await fetch(`/api/lotto/predict/?${query.toString()}`);
           const data = await response.json();
           if (!response.ok) {
             throw new Error(data.error || "예측 데이터를 불러오지 못했습니다.");
@@ -132,6 +152,12 @@
 
           latestDraw.textContent = `${data.latest_draw_no}회 (${data.latest_draw_date})`;
           drawCount.textContent = `${data.analyzed_draw_count}개 회차`;
+          lastWeekNumbers.textContent = data.last_week_numbers?.length
+            ? formatNumbers(data.last_week_numbers)
+            : "-";
+          myPenaltyNumbers.textContent = data.my_numbers?.length
+            ? formatNumbers(data.my_numbers)
+            : "없음";
           renderSets(data.recommended_sets);
           hotNumbers.textContent = formatNumbers(data.hot_numbers);
           coldNumbers.textContent = formatNumbers(data.cold_numbers);
