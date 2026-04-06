@@ -21,6 +21,7 @@ LOTTO_HTTP_TIMEOUT = 10
 LOTTO_RETRY_COUNT = 3
 LOTTO_WARMUP_LOCK = threading.Lock()
 LOTTO_WARMUP_RUNNING = False
+LOTTO_STRATEGIES = {"conservative", "balanced", "aggressive"}
 logger = logging.getLogger(__name__)
 
 
@@ -180,25 +181,68 @@ def _find_latest_draw_no():
 
 
 def _build_lotto_prediction(draws, set_count):
-    return _build_lotto_prediction_with_penalty(draws, set_count, set())
+    return _build_lotto_prediction_with_penalty(draws, set_count, set(), "balanced")
 
 
-def _build_lotto_prediction_with_penalty(draws, set_count, user_numbers):
+def _passes_strategy_rules(selected_set, strategy):
+    odd_count = sum(1 for number in selected_set if number % 2 == 1)
+    total_sum = sum(selected_set)
+    low = sum(1 for number in selected_set if number <= 15)
+    mid = sum(1 for number in selected_set if 16 <= number <= 30)
+    high = sum(1 for number in selected_set if number >= 31)
+
+    if strategy == "conservative":
+        if odd_count not in {2, 3, 4}:
+            return False
+        if not (95 <= total_sum <= 175):
+            return False
+        if min(low, mid, high) == 0:
+            return False
+    elif strategy == "aggressive":
+        # 공격형은 제약을 완화해서 고점 번호를 더 시도한다.
+        if odd_count not in {1, 2, 3, 4, 5}:
+            return False
+    else:  # balanced
+        if odd_count not in {2, 3, 4}:
+            return False
+        if not (85 <= total_sum <= 190):
+            return False
+
+    return True
+
+
+def _build_lotto_prediction_with_penalty(draws, set_count, user_numbers, strategy):
     scores = {number: 1.0 for number in range(LOTTO_MIN_NUMBER, LOTTO_MAX_NUMBER + 1)}
     frequency = {number: 0 for number in range(LOTTO_MIN_NUMBER, LOTTO_MAX_NUMBER + 1)}
     total_draws = len(draws)
 
+    strategy_recent_multiplier = {
+        "conservative": 1.15,
+        "balanced": 1.0,
+        "aggressive": 0.9,
+    }.get(strategy, 1.0)
+    strategy_user_penalty = {
+        "conservative": 0.66,
+        "balanced": 0.72,
+        "aggressive": 0.8,
+    }.get(strategy, 0.72)
+    strategy_last_penalty = {
+        "conservative": 0.74,
+        "balanced": 0.82,
+        "aggressive": 0.88,
+    }.get(strategy, 0.82)
+
     for index, draw in enumerate(draws):
-        recent_weight = 0.45 + ((index + 1) / total_draws) * 1.55
+        recent_weight = (0.45 + ((index + 1) / total_draws) * 1.55) * strategy_recent_multiplier
         for number in draw["numbers"]:
             frequency[number] += 1
             scores[number] += recent_weight
 
     latest_numbers = set(draws[-1]["numbers"])
     for number in latest_numbers:
-        scores[number] *= 0.82
+        scores[number] *= strategy_last_penalty
     for number in user_numbers:
-        scores[number] *= 0.72
+        scores[number] *= strategy_user_penalty
 
     hot_numbers = sorted(scores, key=lambda number: scores[number], reverse=True)[:10]
     cold_numbers = sorted(scores, key=lambda number: scores[number])[:10]
@@ -229,6 +273,9 @@ def _build_lotto_prediction_with_penalty(draws, set_count, user_numbers):
         if user_numbers and len(selected_set & user_numbers) >= 3:
             attempts += 1
             continue
+        if not _passes_strategy_rules(selected_set, strategy):
+            attempts += 1
+            continue
 
         key = tuple(selected)
         if key not in seen:
@@ -252,6 +299,53 @@ def _build_lotto_prediction_with_penalty(draws, set_count, user_numbers):
         "cold_numbers": sorted(cold_numbers),
         "frequency": frequency,
     }
+
+
+def _run_lotto_backtest(draws, strategy, user_numbers):
+    if len(draws) < 120:
+        return {
+            "tested_draws": 0,
+            "hit_3": 0,
+            "hit_4": 0,
+            "hit_5": 0,
+            "hit_5_bonus": 0,
+            "hit_6": 0,
+            "hit_rate_3_plus": 0.0,
+        }
+
+    tested = min(60, len(draws) - 30)
+    start_index = len(draws) - tested
+
+    stats = {
+        "tested_draws": tested,
+        "hit_3": 0,
+        "hit_4": 0,
+        "hit_5": 0,
+        "hit_5_bonus": 0,
+        "hit_6": 0,
+    }
+
+    for idx in range(start_index, len(draws)):
+        train_draws = draws[:idx]
+        target = draws[idx]
+        prediction = _build_lotto_prediction_with_penalty(train_draws, 1, user_numbers, strategy)
+        pick = set(prediction["recommended_sets"][0])
+        target_main = set(target["numbers"])
+        match_count = len(pick & target_main)
+
+        if match_count >= 3:
+            stats["hit_3"] += 1
+        if match_count >= 4:
+            stats["hit_4"] += 1
+        if match_count == 5:
+            stats["hit_5"] += 1
+            if target["bonus"] in pick:
+                stats["hit_5_bonus"] += 1
+        if match_count == 6:
+            stats["hit_6"] += 1
+
+    stats["hit_rate_3_plus"] = round((stats["hit_3"] / tested) * 100, 2) if tested else 0.0
+    return stats
 
 
 def _parse_number_set(raw_numbers):
@@ -336,6 +430,9 @@ def lotto_predict_api(request):
         user_numbers = _parse_number_set(request.GET.get("my_numbers", ""))
     except ValueError as error:
         return JsonResponse({"error": str(error)}, status=400)
+    strategy = request.GET.get("strategy", "balanced")
+    if strategy not in LOTTO_STRATEGIES:
+        return JsonResponse({"error": "strategy 값이 올바르지 않습니다."}, status=400)
 
     set_count = max(1, min(set_count, 10))
     _ensure_lotto_warmup()
@@ -354,11 +451,22 @@ def lotto_predict_api(request):
                 "cold_numbers": fallback["cold_numbers"],
                 "my_numbers": sorted(user_numbers),
                 "last_week_numbers": latest_week_numbers,
+                "strategy": strategy,
+                "backtest": {
+                    "tested_draws": 0,
+                    "hit_3": 0,
+                    "hit_4": 0,
+                    "hit_5": 0,
+                    "hit_5_bonus": 0,
+                    "hit_6": 0,
+                    "hit_rate_3_plus": 0.0,
+                },
                 "note": "전체 회차 데이터를 백그라운드 수집 중입니다. 잠시 후 다시 시도하세요.",
             }
         )
 
-    prediction = _build_lotto_prediction_with_penalty(draws, set_count, user_numbers)
+    prediction = _build_lotto_prediction_with_penalty(draws, set_count, user_numbers, strategy)
+    backtest = _run_lotto_backtest(draws, strategy, user_numbers)
     return JsonResponse(
         {
             "latest_draw_no": draws[-1]["draw_no"],
@@ -369,6 +477,8 @@ def lotto_predict_api(request):
             "cold_numbers": prediction["cold_numbers"],
             "my_numbers": sorted(user_numbers),
             "last_week_numbers": latest_week_numbers,
-            "note": "내 번호/지난주 번호와 겹침을 줄이는 패널티를 반영한 통계 추천입니다.",
+            "strategy": strategy,
+            "backtest": backtest,
+            "note": "전략/패널티 기반 통계 추천입니다. 백테스트는 최근 회차를 기준으로 계산됩니다.",
         }
     )

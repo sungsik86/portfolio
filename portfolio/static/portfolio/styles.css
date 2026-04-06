@@ -355,6 +355,16 @@ h1 {
   font-size: 1rem;
 }
 
+.converter-field select {
+  width: 100%;
+  border: 1px solid #ffffff30;
+  border-radius: 12px;
+  background: #101722;
+  color: #f0f5ff;
+  padding: 0.85rem 0.9rem;
+  font-size: 1rem;
+}
+
 .converter-rate {
   border: 1px solid #ffffff20;
   border-radius: 12px;
@@ -431,7 +441,7 @@ h1 {
 .lotto-controls {
   margin-top: 1.3rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.8rem;
   align-items: end;
 }

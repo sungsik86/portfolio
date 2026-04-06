@@ -36,6 +36,14 @@
             <input id="setCount" type="number" min="1" max="10" step="1" value="3" autocomplete="off" />
           </label>
           <label class="converter-field">
+            <span>전략</span>
+            <select id="strategySelect">
+              <option value="balanced" selected>균형형</option>
+              <option value="conservative">보수형</option>
+              <option value="aggressive">공격형</option>
+            </select>
+          </label>
+          <label class="converter-field">
             <span>내 번호 (선택, 쉼표/공백 구분)</span>
             <input id="myNumbers" type="text" placeholder="예: 3, 11, 17, 23, 31, 41" autocomplete="off" />
           </label>
@@ -71,6 +79,17 @@
           </article>
         </section>
 
+        <section class="lotto-stat-grid">
+          <article class="lotto-stat-card">
+            <h3>백테스트(최근 60회)</h3>
+            <p id="backtestSummary">-</p>
+          </article>
+          <article class="lotto-stat-card">
+            <h3>적중 건수</h3>
+            <p id="backtestHits">-</p>
+          </article>
+        </section>
+
         <p class="lotto-note">
           참고: 이 기능은 통계 기반 추천이며 실제 당첨을 보장하지 않습니다.
         </p>
@@ -80,6 +99,7 @@
     <script src="{% static 'portfolio/script.js' %}"></script>
     <script>
       const setCountInput = document.getElementById("setCount");
+      const strategySelect = document.getElementById("strategySelect");
       const myNumbersInput = document.getElementById("myNumbers");
       const predictBtn = document.getElementById("predictBtn");
       const lottoStatus = document.getElementById("lottoStatus");
@@ -90,7 +110,10 @@
       const lottoSets = document.getElementById("lottoSets");
       const hotNumbers = document.getElementById("hotNumbers");
       const coldNumbers = document.getElementById("coldNumbers");
+      const backtestSummary = document.getElementById("backtestSummary");
+      const backtestHits = document.getElementById("backtestHits");
       const DEFAULT_SET_COUNT = 3;
+      const DEFAULT_STRATEGY = "balanced";
 
       function formatNumbers(numbers) {
         return numbers.map((number) => String(number).padStart(2, "0")).join(" · ");
@@ -111,6 +134,7 @@
 
       function resetView() {
         setCountInput.value = String(DEFAULT_SET_COUNT);
+        strategySelect.value = DEFAULT_STRATEGY;
         myNumbersInput.value = "";
         latestDraw.textContent = "-";
         drawCount.textContent = "-";
@@ -118,6 +142,8 @@
         myPenaltyNumbers.textContent = "-";
         hotNumbers.textContent = "-";
         coldNumbers.textContent = "-";
+        backtestSummary.textContent = "-";
+        backtestHits.textContent = "-";
         lottoSets.innerHTML = "";
         lottoStatus.textContent = "버튼을 누르면 최신 회차 데이터를 불러와 예측합니다.";
         lottoStatus.classList.remove("error");
@@ -125,6 +151,7 @@
 
       async function predictNumbers() {
         const sets = Math.max(1, Math.min(10, Number(setCountInput.value) || 5));
+        const strategy = strategySelect.value || DEFAULT_STRATEGY;
         const myNumbersRaw = myNumbersInput.value.trim();
 
         lottoStatus.textContent = "전체 회차 데이터를 계산하는 중입니다...";
@@ -136,10 +163,12 @@
         myPenaltyNumbers.textContent = "-";
         hotNumbers.textContent = "-";
         coldNumbers.textContent = "-";
+        backtestSummary.textContent = "-";
+        backtestHits.textContent = "-";
         lottoSets.innerHTML = "";
 
         try {
-          const query = new URLSearchParams({ sets: String(sets) });
+          const query = new URLSearchParams({ sets: String(sets), strategy });
           if (myNumbersRaw) {
             query.set("my_numbers", myNumbersRaw);
           }
@@ -161,6 +190,13 @@
           renderSets(data.recommended_sets);
           hotNumbers.textContent = formatNumbers(data.hot_numbers);
           coldNumbers.textContent = formatNumbers(data.cold_numbers);
+          if (data.backtest) {
+            backtestSummary.textContent = `3개+ 적중률 ${data.backtest.hit_rate_3_plus}% (검증 ${data.backtest.tested_draws}회)`;
+            backtestHits.textContent = `3개+ ${data.backtest.hit_3} / 4개+ ${data.backtest.hit_4} / 5개 ${data.backtest.hit_5} / 5+보너스 ${data.backtest.hit_5_bonus} / 6개 ${data.backtest.hit_6}`;
+          } else {
+            backtestSummary.textContent = "-";
+            backtestHits.textContent = "-";
+          }
           lottoStatus.textContent = data.note;
         } catch (error) {
           lottoStatus.textContent = error.message;
